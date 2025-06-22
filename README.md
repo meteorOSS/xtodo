@@ -1,4 +1,6 @@
-# XTodo - 基于文件的任务管理器
+# XTodo
+
+[在VsCode市场安装 | Install](https://marketplace.visualstudio.com/items?itemName=meteorOSS.xtodo)
 
 ![logo](https://github.com/meteorOSS/xtodo/raw/master/resources/logo.png)
 
