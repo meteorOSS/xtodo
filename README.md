@@ -1,6 +1,6 @@
 # XTodo - 基于文件的任务管理器
 
-![logo](resources/logo.png)
+![logo](https://github.com/meteorOSS/xtodo/raw/master/resources/logo.png)
 
 (logo 由 豆包 生成)
 
@@ -8,7 +8,7 @@
 
 一款轻量级 VS Code 扩展，通过简单的文本文件管理任务
 
-![desc](resources/desc.png)
+![desc](https://github.com/meteorOSS/xtodo/raw/master/resources/desc.png)
 
 ## 功能 Features
 
