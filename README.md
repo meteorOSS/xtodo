@@ -33,7 +33,7 @@
 
 > Create `.todo` files with simple status symbols:
 >
-> - ☐ Not started tasks (alt+a)
+> - ☐ Not started tasks (alt+q)
 > - ■ In-progress tasks (alt+f)
 > - ✔ Completed tasks (alt+d)
 
