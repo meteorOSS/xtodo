@@ -8,6 +8,11 @@ import { TodoParser } from '../parser/todoParser';
  */
 export class TodoNode {
   public readonly contextValue: string;
+  public command?: {
+    command: string;
+    title: string;
+    arguments: any[];
+  };
   
   constructor(
     public readonly label: string,
@@ -82,6 +87,15 @@ export class TodoExplorerProvider implements vscode.TreeDataProvider<TodoNode> {
     } else if (element.type === 'file') {
       treeItem.iconPath = new vscode.ThemeIcon('file');
       treeItem.description = path.basename(element.file?.path || '');
+      
+      // 添加文件导航命令
+      if (element.file) {
+        treeItem.command = {
+          command: 'xtodo.openTodoFile',
+          title: '打开文件',
+          arguments: [element.file.path]
+        };
+      }
     } else if (element.type === 'group') {
       treeItem.iconPath = new vscode.ThemeIcon('folder');
     }
@@ -134,6 +148,35 @@ export class TodoExplorerProvider implements vscode.TreeDataProvider<TodoNode> {
     
     if (element.type === 'file' && element.file) {
       // 文件节点，显示该文件中的所有任务
+      const file = element.file;
+      
+      // 添加文件导航命令，即使文件为空也能点击打开
+      if (!element.file.command) {
+        element.file.command = {
+          command: 'xtodo.openTodoFile',
+          title: '打开文件',
+          arguments: [file.path]
+        };
+      }
+      
+      if (file.items.length === 0) {
+        const emptyNode = new TodoNode(
+          '空文件，点击添加任务',
+          vscode.TreeItemCollapsibleState.None,
+          'task',
+          undefined,
+          file,
+          file.group
+        );
+        // 确保空文件提示节点也能打开文件
+        emptyNode.command = {
+          command: 'xtodo.openTodoFile',
+          title: '打开文件',
+          arguments: [file.path]
+        };
+        return Promise.resolve([emptyNode]);
+      }
+      
       return Promise.resolve(
         this.createTaskNodes(element.file.items, element.file)
       );
@@ -217,6 +260,17 @@ export class TodoActiveProvider implements vscode.TreeDataProvider<TodoNode> {
       treeItem.description = `${element.file?.name}`;
     } else if (element.type === 'group') {
       treeItem.iconPath = new vscode.ThemeIcon('folder');
+    } else if (element.type === 'file') {
+      treeItem.iconPath = new vscode.ThemeIcon('file');
+      
+      // 添加文件导航命令
+      if (element.file) {
+        treeItem.command = {
+          command: 'xtodo.openTodoFile',
+          title: '打开文件',
+          arguments: [element.file.path]
+        };
+      }
     }
     
     return treeItem;

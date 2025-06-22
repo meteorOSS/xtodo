@@ -37,6 +37,12 @@ export interface TodoFile {
   items: TodoItem[];
   /** 文件所属分组 */
   group: string;
+  /** 关联的命令 */
+  command?: {
+    command: string;
+    title: string;
+    arguments: any[];
+  };
 }
 
 /**

@@ -116,6 +116,15 @@ export class CurrentProjectProvider implements vscode.TreeDataProvider<TodoNode>
     } else if (element.type === 'file') {
       treeItem.iconPath = new vscode.ThemeIcon('file');
       treeItem.description = path.basename(element.file?.path || '');
+      
+      // 添加文件导航命令
+      if (element.file) {
+        treeItem.command = {
+          command: 'xtodo.openTodoFile',
+          title: '打开文件',
+          arguments: [element.file.path]
+        };
+      }
     } else if (element.type === 'group') {
       treeItem.iconPath = new vscode.ThemeIcon('folder');
     }
@@ -179,6 +188,26 @@ export class CurrentProjectProvider implements vscode.TreeDataProvider<TodoNode>
     
     if (element.type === 'file' && element.file) {
       // 文件节点，显示该文件中的所有任务
+      const file = element.file;
+      
+      // 如果文件中没有任务，显示一条提示信息
+      if (file.items.length === 0) {
+        const emptyNode = new TodoNode(
+          '空文件，点击添加任务',
+          vscode.TreeItemCollapsibleState.None,
+          'task',
+          undefined,
+          file,
+          file.group
+        );
+        emptyNode.command = {
+          command: 'xtodo.openTodoFile',
+          title: '打开文件',
+          arguments: [file.path]
+        };
+        return Promise.resolve([emptyNode]);
+      }
+      
       return Promise.resolve(
         this.createTaskNodes(element.file.items, element.file)
       );
