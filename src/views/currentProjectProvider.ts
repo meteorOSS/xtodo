@@ -100,13 +100,13 @@ export class CurrentProjectProvider implements vscode.TreeDataProvider<TodoNode>
       if (element.task) {
         switch (element.task.status) {
           case TodoStatus.NotStarted:
-            treeItem.iconPath = new vscode.ThemeIcon('circle-outline');
+            treeItem.iconPath = new vscode.ThemeIcon('circle-outline', new vscode.ThemeColor('xtodo.notStartedColor'));
             break;
           case TodoStatus.InProgress:
-            treeItem.iconPath = new vscode.ThemeIcon('play-circle');
+            treeItem.iconPath = new vscode.ThemeIcon('play-circle', new vscode.ThemeColor('xtodo.inProgressColor'));
             break;
           case TodoStatus.Completed:
-            treeItem.iconPath = new vscode.ThemeIcon('check');
+            treeItem.iconPath = new vscode.ThemeIcon('check', new vscode.ThemeColor('xtodo.completedColor'));
             break;
         }
         

@@ -4,6 +4,23 @@ import { TodoItem, TodoFile, TodoGroup, TodoStatus } from '../models/todo';
 import { TodoParser } from '../parser/todoParser';
 
 /**
+ * 获取任务状态对应的颜色
+ */
+export function getTaskStatusColor(status: TodoStatus): string {
+  const config = vscode.workspace.getConfiguration('xtodo');
+  switch (status) {
+    case TodoStatus.NotStarted:
+      return config.get<string>('colors.notStarted', '#808080');
+    case TodoStatus.InProgress:
+      return config.get<string>('colors.inProgress', '#0066cc');
+    case TodoStatus.Completed:
+      return config.get<string>('colors.completed', '#008000');
+    default:
+      return '#000000';
+  }
+}
+
+/**
  * 表示树视图中的一个节点
  */
 export class TodoNode {
@@ -67,21 +84,21 @@ export class TodoExplorerProvider implements vscode.TreeDataProvider<TodoNode> {
         arguments: [element.file?.path, element.task?.lineNumber]
       };
       
-      // 设置不同状态的图标
+      // 设置不同状态的图标和颜色
       if (element.task) {
         switch (element.task.status) {
           case TodoStatus.NotStarted:
-            treeItem.iconPath = new vscode.ThemeIcon('circle-outline');
+            treeItem.iconPath = new vscode.ThemeIcon('circle-outline', new vscode.ThemeColor('xtodo.notStartedColor'));
             break;
           case TodoStatus.InProgress:
-            treeItem.iconPath = new vscode.ThemeIcon('play-circle');
+            treeItem.iconPath = new vscode.ThemeIcon('play-circle', new vscode.ThemeColor('xtodo.inProgressColor'));
             break;
           case TodoStatus.Completed:
-            treeItem.iconPath = new vscode.ThemeIcon('check');
+            treeItem.iconPath = new vscode.ThemeIcon('check', new vscode.ThemeColor('xtodo.completedColor'));
             break;
         }
         
-        // 添加任务状态到描述中
+        // 添加任务状态到描述中并设置颜色
         treeItem.description = element.task.status;
       }
     } else if (element.type === 'file') {
@@ -256,7 +273,7 @@ export class TodoActiveProvider implements vscode.TreeDataProvider<TodoNode> {
         arguments: [element.file?.path, element.task?.lineNumber]
       };
       
-      treeItem.iconPath = new vscode.ThemeIcon('play-circle');
+      treeItem.iconPath = new vscode.ThemeIcon('play-circle', new vscode.ThemeColor('xtodo.inProgressColor'));
       treeItem.description = `${element.file?.name}`;
     } else if (element.type === 'group') {
       treeItem.iconPath = new vscode.ThemeIcon('folder');

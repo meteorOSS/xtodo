@@ -2,7 +2,7 @@
   "name": "xtodo",
   "displayName": "XTodo",
   "description": "File-based todo management tool, supporting multi-level file structure and task status tracking",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "icon": "resources/logo.png",
   "publisher": "meteorOSS",
   "repository": {
@@ -43,9 +43,56 @@
             "type": "string"
           },
           "description": "Specify the list of folder paths for storing todo task files (supports absolute paths or paths relative to the workspace), searches the entire workspace when empty"
+        },
+        "xtodo.colors.notStarted": {
+          "type": "string",
+          "default": "#808080",
+          "description": "颜色设置: 未开始任务的颜色（灰色）",
+          "format": "color"
+        },
+        "xtodo.colors.inProgress": {
+          "type": "string",
+          "default": "#0066cc",
+          "description": "颜色设置: 进行中任务的颜色（蓝色）",
+          "format": "color"
+        },
+        "xtodo.colors.completed": {
+          "type": "string",
+          "default": "#008000",
+          "description": "颜色设置: 已完成任务的颜色（绿色）",
+          "format": "color"
         }
       }
     },
+    "colors": [
+      {
+        "id": "xtodo.notStartedColor", 
+        "description": "未开始任务的颜色",
+        "defaults": {
+          "dark": "#808080",
+          "light": "#808080",
+          "highContrast": "#808080"
+        }
+      },
+      {
+        "id": "xtodo.inProgressColor", 
+        "description": "进行中任务的颜色",
+        "defaults": {
+          "dark": "#0066cc",
+          "light": "#0066cc",
+          "highContrast": "#0066cc"
+        }
+      },
+      {
+        "id": "xtodo.completedColor", 
+        "description": "已完成任务的颜色",
+        "defaults": {
+          "dark": "#008000",
+          "light": "#008000",
+          "highContrast": "#008000"
+        }
+      }
+    ],
     "languages": [
       {
         "id": "todo",

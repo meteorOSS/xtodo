@@ -71,10 +71,18 @@ export class TodoDocumentHighlightProvider implements vscode.DocumentSemanticTok
  * @param context 扩展上下文
  */
 export function registerTodoHighlighting(context: vscode.ExtensionContext): vscode.Disposable {
-  // 定义颜色主题
-  const notStartedColor = new vscode.ThemeColor('editor.foreground');
-  const inProgressColor = new vscode.ThemeColor('editorInfo.foreground');
-  const completedColor = new vscode.ThemeColor('editorGutter.addedBackground');
+  // 获取颜色配置
+  const getTaskColors = () => {
+    const config = vscode.workspace.getConfiguration('xtodo');
+    return {
+      notStarted: config.get<string>('colors.notStarted', '#808080'),
+      inProgress: config.get<string>('colors.inProgress', '#0066cc'),
+      completed: config.get<string>('colors.completed', '#008000')
+    };
+  };
+  
+  // 初始颜色
+  let taskColors = getTaskColors();
   
   // 注册语义标记提供器
   const highlightProvider = new TodoDocumentHighlightProvider();
@@ -85,21 +93,34 @@ export function registerTodoHighlighting(context: vscode.ExtensionContext): vsco
     highlightProvider.getLegend()
   );
   
-  // 注册文本装饰器
-  const notStartedDecorationType = vscode.window.createTextEditorDecorationType({
-    color: notStartedColor,
-    fontWeight: 'normal'
-  });
+  // 创建装饰类型
+  const createDecorationTypes = () => {
+    // 从配置中获取颜色设置
+    const config = vscode.workspace.getConfiguration('xtodo');
+    const notStartedColor = config.get<string>('colors.notStarted', '#808080');
+    const inProgressColor = config.get<string>('colors.inProgress', '#0066cc');
+    const completedColor = config.get<string>('colors.completed', '#008000');
+    
+    const notStartedDecorationType = vscode.window.createTextEditorDecorationType({
+      color: notStartedColor,
+      fontWeight: 'normal'
+    });
+    
+    const inProgressDecorationType = vscode.window.createTextEditorDecorationType({
+      color: inProgressColor,
+      fontWeight: 'bold'
+    });
+    
+    const completedDecorationType = vscode.window.createTextEditorDecorationType({
+      color: completedColor,
+      textDecoration: 'line-through'
+    });
+    
+    return { notStartedDecorationType, inProgressDecorationType, completedDecorationType };
+  };
   
-  const inProgressDecorationType = vscode.window.createTextEditorDecorationType({
-    color: inProgressColor,
-    fontWeight: 'bold'
-  });
-  
-  const completedDecorationType = vscode.window.createTextEditorDecorationType({
-    color: completedColor,
-    textDecoration: 'line-through'
-  });
+  // 初始化装饰类型
+  let decorationTypes = createDecorationTypes();
   
   // 注册装饰更新
   const updateDecoration = (editor: vscode.TextEditor) => {
@@ -141,10 +162,27 @@ export function registerTodoHighlighting(context: vscode.ExtensionContext): vsco
       }
     }
     
-    editor.setDecorations(notStartedDecorationType, notStartedLines);
-    editor.setDecorations(inProgressDecorationType, inProgressLines);
-    editor.setDecorations(completedDecorationType, completedLines);
+    editor.setDecorations(decorationTypes.notStartedDecorationType, notStartedLines);
+    editor.setDecorations(decorationTypes.inProgressDecorationType, inProgressLines);
+    editor.setDecorations(decorationTypes.completedDecorationType, completedLines);
   };
+  
+  // 监听配置变化，更新颜色
+  const onConfigurationChanged = vscode.workspace.onDidChangeConfiguration(e => {
+    if (e.affectsConfiguration('xtodo.colors')) {
+      taskColors = getTaskColors();
+      
+      // 重新创建装饰类型
+      decorationTypes = createDecorationTypes();
+      
+      // 更新所有打开的编辑器
+      vscode.window.visibleTextEditors.forEach(editor => {
+        if (editor.document.languageId === 'todo') {
+          updateDecoration(editor);
+        }
+      });
+    }
+  });
   
   // 监听活动编辑器变化
   const onActiveEditorChanged = vscode.window.onDidChangeActiveTextEditor(editor => {
@@ -170,6 +208,7 @@ export function registerTodoHighlighting(context: vscode.ExtensionContext): vsco
   return vscode.Disposable.from(
     semanticHighlights,
     onActiveEditorChanged, 
-    onDocumentChanged
+    onDocumentChanged,
+    onConfigurationChanged
   );
 } 
