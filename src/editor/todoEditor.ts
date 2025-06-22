@@ -70,6 +70,130 @@ export class TodoEditor {
    * @param editor 编辑器
    */
   public static setTaskNotStarted(editor: vscode.TextEditor): void {
+    const document = editor.document;
+    
+    // 确保是todo文件
+    if (document.languageId !== 'todo') {
+      vscode.window.showErrorMessage(getMessage('onlyInTodoFile'));
+      return;
+    }
+    
+    // 处理选中多行的情况
+    if (!editor.selection.isEmpty) {
+      // 获取选中的行范围
+      const startLine = editor.selection.start.line;
+      const endLine = editor.selection.end.line;
+      
+      // 批量编辑
+      editor.edit(editBuilder => {
+        for (let i = startLine; i <= endLine; i++) {
+          const line = document.lineAt(i);
+          const lineText = line.text;
+          
+          // 获取当前任务状态
+          const currentStatus = this.getTaskStatus(lineText);
+          
+          // 如果不是任务行，则添加未开始状态
+          if (currentStatus === undefined) {
+            // 计算缩进
+            const indentMatch = lineText.match(/^(\s*)/);
+            const indent = indentMatch ? indentMatch[1] : '';
+            
+            // 提取内容
+            const content = lineText.trim();
+            
+            // 如果行不为空，添加任务状态
+            if (content.length > 0) {
+              // 创建新行
+              const newLine = `${indent}${TodoStatus.NotStarted} ${content}`;
+              
+              // 更新文本
+              editBuilder.replace(line.range, newLine);
+            }
+          } else {
+            // 如果是任务行，根据现有的逻辑处理
+            if (currentStatus === TodoStatus.NotStarted) {
+              // 已经是未开始状态，则设置为进行中
+              let oppositeStatus = TodoStatus.InProgress;
+              
+              // 计算缩进
+              const indentMatch = lineText.match(/^(\s*)/);
+              const indent = indentMatch ? indentMatch[1] : '';
+              
+              // 提取任务内容
+              const taskContent = lineText.substring(
+                lineText.indexOf(currentStatus) + currentStatus.length
+              ).trim();
+              
+              // 创建新行
+              const newLine = `${indent}${oppositeStatus} ${taskContent}`;
+              
+              // 更新文本
+              editBuilder.replace(line.range, newLine);
+            } else {
+              // 其他状态设置为未开始
+              // 计算缩进
+              const indentMatch = lineText.match(/^(\s*)/);
+              const indent = indentMatch ? indentMatch[1] : '';
+              
+              // 提取任务内容
+              const taskContent = lineText.substring(
+                lineText.indexOf(currentStatus) + currentStatus.length
+              ).trim();
+              
+              // 创建新行
+              const newLine = `${indent}${TodoStatus.NotStarted} ${taskContent}`;
+              
+              // 更新文本
+              editBuilder.replace(line.range, newLine);
+            }
+          }
+        }
+      }).then(success => {
+        if (success) {
+          // 通知任务状态已更改
+          vscode.commands.executeCommand('xtodo.refreshTodoView');
+        }
+      });
+      return;
+    }
+    
+    // 处理单行情况
+    const position = editor.selection.active;
+    const line = document.lineAt(position.line);
+    const lineText = line.text;
+    
+    // 获取当前任务状态
+    const currentStatus = this.getTaskStatus(lineText);
+    
+    // 如果不是任务行，则添加未开始状态
+    if (currentStatus === undefined) {
+      // 计算缩进
+      const indentMatch = lineText.match(/^(\s*)/);
+      const indent = indentMatch ? indentMatch[1] : '';
+      
+      // 提取内容
+      const content = lineText.trim();
+      
+      // 如果行不为空，添加任务状态
+      if (content.length > 0) {
+        // 创建新行
+        const newLine = `${indent}${TodoStatus.NotStarted} ${content}`;
+        
+        // 更新文本
+        editor.edit(editBuilder => {
+          editBuilder.replace(line.range, newLine);
+        }).then(success => {
+          if (success) {
+            // 通知任务状态已更改
+            vscode.commands.executeCommand('xtodo.refreshTodoView');
+          }
+        });
+      }
+      return;
+    }
+    
+    // 如果是任务行，使用现有逻辑设置为未开始状态
     this.setSpecificStatus(editor, TodoStatus.NotStarted);
   }
 

@@ -2,7 +2,7 @@
   "name": "xtodo",
   "displayName": "XTodo",
   "description": "File-based todo management tool, supporting multi-level file structure and task status tracking",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "icon": "resources/logo.png",
   "publisher": "meteorOSS",
   "repository": {
@@ -130,6 +130,10 @@
       {
         "command": "xtodo.setTaskInProgress",
         "title": "Mark as In Progress"
+      },
+      {
+        "command": "xtodo.convertToTask",
+        "title": "Convert to Task or Toggle Task Status"
       }
     ],
     "viewsContainers": {
@@ -208,6 +212,11 @@
       {
         "command": "xtodo.setTaskInProgress",
         "key": "alt+f",
+        "when": "editorTextFocus && editorLangId == 'todo'"
+      },
+      {
+        "command": "xtodo.convertToTask",
+        "key": "ctrl+q",
         "when": "editorTextFocus && editorLangId == 'todo'"
       }
     ]
