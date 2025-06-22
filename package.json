@@ -1,0 +1,195 @@
+{
+  "name": "xtodo",
+  "displayName": "XTodo",
+  "description": "File-based todo management tool, supporting multi-level file structure and task status tracking",
+  "version": "0.0.1",
+  "icon": "resources/logo.png",
+  "publisher": "meteorOSS",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/meteorOSS/xtodo"
+  },
+  "keywords": [
+    "todo",
+    "task",
+    "productivity",
+    "task management",
+    "todo items",
+    "待办",
+    "任务管理",
+    "任务",
+    "任务清单"
+  ],
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:todo",
+    "onView:todoExplorer",
+    "onView:todoActive"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "XTodo",
+      "properties": {
+        "xtodo.todoFolders": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Specify the list of folder paths for storing todo task files (supports absolute paths or paths relative to the workspace), searches the entire workspace when empty"
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "todo",
+        "extensions": [".todo"],
+        "aliases": ["TODO", "todo"]
+      }
+    ],
+    "commands": [
+      {
+        "command": "xtodo.toggleTodoStatus",
+        "title": "Toggle Task Status"
+      },
+      {
+        "command": "xtodo.refreshTodoView",
+        "title": "Refresh Todo View",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "xtodo.openTodoFile",
+        "title": "Open Todo File"
+      },
+      {
+        "command": "xtodo.addTodoFolder",
+        "title": "Add Todo Folder",
+        "icon": "$(add)"
+      },
+      {
+        "command": "xtodo.setTaskCompleted",
+        "title": "Mark as Completed"
+      },
+      {
+        "command": "xtodo.setTaskNotStarted",
+        "title": "Mark as Not Started"
+      },
+      {
+        "command": "xtodo.setTaskInProgress",
+        "title": "Mark as In Progress"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "todo-explorer",
+          "title": "Todo Tasks",
+          "icon": "$(checklist)"
+        }
+      ]
+    },
+    "views": {
+      "todo-explorer": [
+        {
+          "id": "todoActive",
+          "name": "Active Tasks"
+        },
+        {
+          "id": "todoExplorer",
+          "name": "All Tasks"
+        },
+        {
+          "id": "todoCurrentProject",
+          "name": "Current Project"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "xtodo.addTodoFolder",
+          "when": "view == todoExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "xtodo.refreshTodoView",
+          "when": "view == todoExplorer || view == todoActive || view == todoCurrentProject",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "xtodo.setTaskCompleted",
+          "when": "view =~ /todo.*/ && viewItem == 'task'",
+          "group": "1_modification"
+        },
+        {
+          "command": "xtodo.setTaskInProgress",
+          "when": "view =~ /todo.*/ && viewItem == 'task'",
+          "group": "1_modification"
+        },
+        {
+          "command": "xtodo.setTaskNotStarted",
+          "when": "view =~ /todo.*/ && viewItem == 'task'",
+          "group": "1_modification"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "xtodo.toggleTodoStatus",
+        "key": "alt+l",
+        "mac": "alt+l",
+        "when": "editorTextFocus && editorLangId == 'todo'"
+      },
+      {
+        "command": "xtodo.setTaskCompleted",
+        "key": "alt+d",
+        "when": "editorTextFocus && editorLangId == 'todo'"
+      },
+      {
+        "command": "xtodo.setTaskNotStarted",
+        "key": "alt+q",
+        "when": "editorTextFocus && editorLangId == 'todo'"
+      },
+      {
+        "command": "xtodo.setTaskInProgress",
+        "key": "alt+f",
+        "when": "editorTextFocus && editorLangId == 'todo'"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test",
+    "vsce:package": "node ./scripts/package.js",
+    "vsce:publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "eslint": "^9.25.1",
+    "typescript": "^5.8.3",
+    "ts-loader": "^9.5.2",
+    "webpack": "^5.99.7",
+    "webpack-cli": "^6.0.1",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}

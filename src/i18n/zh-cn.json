@@ -1,0 +1,9 @@
+{
+  "selectTodoFolder": "选择待办文件夹",
+  "folderAlreadyExists": "待办文件夹已存在: {0}",
+  "folderAdded": "已添加待办文件夹: {0}",
+  "errorUpdateStatus": "更新任务状态失败",
+  "onlyInTodoFile": "只能在Todo文件中更改任务状态",
+  "notValidTask": "当前行不是有效的任务",
+  "cannotOpenFile": "无法打开文件: {0}"
+} 

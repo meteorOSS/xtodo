@@ -1,0 +1,9 @@
+{
+  "selectTodoFolder": "Select Todo Folder",
+  "folderAlreadyExists": "Todo folder already exists: {0}",
+  "folderAdded": "Todo folder added: {0}",
+  "errorUpdateStatus": "Failed to update task status",
+  "onlyInTodoFile": "Can only change task status in Todo files",
+  "notValidTask": "Current line is not a valid task",
+  "cannotOpenFile": "Cannot open file: {0}"
+} 

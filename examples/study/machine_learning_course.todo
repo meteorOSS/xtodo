@@ -1,0 +1,59 @@
+☐ Machine Learning Specialization:
+
+    ✔ Course 1: Introduction to Machine Learning
+        ✔ Week 1: Introduction to ML problems
+            ✔ Watch lectures
+            ✔ Complete quiz
+            ✔ Programming assignment: Linear Regression
+        ✔ Week 2: Regression Models
+            ✔ Watch lectures
+            ✔ Complete quiz
+            ✔ Programming assignment: Multiple Regression
+        ✔ Week 3: Classification
+            ✔ Watch lectures
+            ✔ Complete quiz
+            ✔ Programming assignment: Logistic Regression
+        ✔ Final Project: Housing Price Prediction
+
+    ■ Course 2: Advanced Learning Algorithms
+        ✔ Week 1: Neural Networks Introduction
+            ✔ Watch lectures
+            ✔ Complete quiz
+            ✔ Programming assignment: Neural Network from Scratch
+        ✔ Week 2: Neural Network Training
+            ✔ Watch lectures
+            ✔ Complete quiz
+            ✔ Programming assignment: Backpropagation
+        ✔ Week 3: Decision Trees
+            ✔ Watch lectures
+            ✔ Complete quiz
+            ■ Programming assignment: Random Forests
+        ☐ Week 4: Unsupervised Learning
+            ☐ Watch lectures
+            ☐ Complete quiz
+            ☐ Programming assignment: K-means Clustering
+        ☐ Final Project: Image Classification
+
+    ☐ Course 3: Machine Learning in Production
+        ☐ Week 1: ML Project Lifecycle
+            ☐ Watch lectures
+            ☐ Complete quiz
+        ☐ Week 2: Data-Centric AI
+            ☐ Watch lectures
+            ☐ Complete quiz
+        ☐ Week 3: Model Deployment
+            ☐ Watch lectures
+            ☐ Complete quiz
+            ☐ Programming assignment: Model Serving
+        ☐ Final Project: Recommendation System
+
+☐ Supplementary Materials:
+    ■ Math Reviews
+        ✔ Linear Algebra
+        ✔ Probability
+        ■ Calculus
+        ☐ Statistics
+    ☐ Programming Practice
+        ☐ Python Data Science libraries
+        ☐ TensorFlow tutorial
+        ☐ PyTorch implementation projects 
