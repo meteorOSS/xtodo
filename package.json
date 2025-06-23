@@ -2,7 +2,7 @@
   "name": "xtodo",
   "displayName": "XTodo",
   "description": "File-based todo management tool, supporting multi-level file structure and task status tracking",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "icon": "resources/logo.png",
   "publisher": "meteorOSS",
   "repository": {
