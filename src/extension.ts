@@ -9,6 +9,7 @@ import { TodoFileWatcher } from './watcher/todoFileWatcher';
 import * as path from 'path';
 import { TodoStatus } from './models/todo';
 import { loadMessages, getMessage } from './i18n/localization';
+import { TodoParser } from './parser/todoParser';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -45,26 +46,65 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 	context.subscriptions.push(currentProjectView);
 
+	// 防抖动事件调度 - 控制视图更新频率
+	let refreshPending = false;
+	let pendingViews = new Set<string>();
+
+	// 简化的视图刷新调度
+	const scheduleRefresh = (provider: string) => {
+		pendingViews.add(provider);
+
+		if (!refreshPending) {
+			refreshPending = true;
+			setTimeout(() => {
+				// 批量刷新所有需要更新的视图
+				if (pendingViews.has('explorer')) todoExplorerProvider.refresh();
+				if (pendingViews.has('active')) todoActiveProvider.refresh();
+				if (pendingViews.has('current')) currentProjectProvider.refresh();
+
+				pendingViews.clear();
+				refreshPending = false;
+			}, 100);  // 100ms的防抖延迟
+		}
+	};
+
 	// 在文件监听器刷新时更新视图
 	context.subscriptions.push(
 		fileWatcher.onDidRefresh(() => {
-			todoExplorerProvider.refresh();
-			todoActiveProvider.refresh();
-			currentProjectProvider.refresh();
+			// 标记所有视图需要刷新
+			scheduleRefresh('explorer');
+			scheduleRefresh('active');
+			scheduleRefresh('current');
+		})
+	);
+
+	// 配置更改时清除缓存
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeConfiguration(e => {
+			if (e.affectsConfiguration('xtodo')) {
+				// 清除解析器缓存
+				TodoParser.clearCache();
+				// 清除视图提供器缓存
+				todoExplorerProvider.clearCache();
+				todoActiveProvider.clearCache();
+				currentProjectProvider.clearCache();
+				
+				fileWatcher.invalidateCache();
+			}
 		})
 	);
 
 	// 监听编辑器切换事件，更新当前项目视图
 	context.subscriptions.push(
 		vscode.window.onDidChangeActiveTextEditor(() => {
-			currentProjectProvider.refresh();
+			scheduleRefresh('current');
 		})
 	);
 
 	// 注册刷新命令
 	const refreshCommand = vscode.commands.registerCommand('xtodo.refreshTodoView', () => {
+		TodoParser.clearCache();
 		fileWatcher.invalidateCache();
-		currentProjectProvider.refresh();
 	});
 	context.subscriptions.push(refreshCommand);
 

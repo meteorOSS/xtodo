@@ -52,20 +52,34 @@ export class TodoExplorerProvider implements vscode.TreeDataProvider<TodoNode> {
   private _onDidChangeTreeData: vscode.EventEmitter<TodoNode | undefined | null | void> = new vscode.EventEmitter<TodoNode | undefined | null | void>();
   readonly onDidChangeTreeData: vscode.Event<TodoNode | undefined | null | void> = this._onDidChangeTreeData.event;
 
+  // 使用 WeakMap 存储节点缓存，避免内存泄漏
+  private nodeCache = new WeakMap<TodoFile | TodoItem, TodoNode>();
+  // 轻量级的分组节点缓存
+  private groupNodeCache = new Map<string, TodoNode>();
   private todoGroups: TodoGroup[] = [];
-  private nodeCache = new Map<string, TodoNode>();
+  private refreshTimer: NodeJS.Timeout | undefined;
+  private readonly REFRESH_DELAY = 50; // 防抖刷新时间
 
   constructor() {
     this.refresh();
   }
 
   /**
-   * 刷新树视图
+   * 刷新树视图 - 使用防抖动避免频繁刷新
    */
-  public async refresh(): Promise<void> {
-    this.nodeCache.clear();
-    this.todoGroups = await TodoParser.findAllTodoFiles();
-    this._onDidChangeTreeData.fire();
+  public refresh(): void {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+    }
+    
+    this.refreshTimer = setTimeout(async () => {
+      try {
+        this.todoGroups = await TodoParser.findAllTodoFiles();
+        this._onDidChangeTreeData.fire();
+      } catch (error) {
+        console.error("刷新树视图失败:", error);
+      }
+    }, this.REFRESH_DELAY);
   }
 
   /**
@@ -121,7 +135,7 @@ export class TodoExplorerProvider implements vscode.TreeDataProvider<TodoNode> {
   }
 
   /**
-   * 获取子节点
+   * 获取子节点 - 使用缓存和懒加载
    * @param element 父节点
    * @returns 子节点数组
    */
@@ -130,15 +144,33 @@ export class TodoExplorerProvider implements vscode.TreeDataProvider<TodoNode> {
       // 根节点，显示所有分组
       const groupNodes: TodoNode[] = [];
       for (const group of this.todoGroups) {
-        groupNodes.push(new TodoNode(
-          group.name,
-          vscode.TreeItemCollapsibleState.Collapsed,
-          'group',
-          undefined,
-          undefined,
-          group.name
-        ));
+        // 尝试从缓存获取
+        let groupNode = this.groupNodeCache.get(group.name);
+        if (!groupNode) {
+          groupNode = new TodoNode(
+            group.name,
+            vscode.TreeItemCollapsibleState.Collapsed,
+            'group',
+            undefined,
+            undefined,
+            group.name
+          );
+          this.groupNodeCache.set(group.name, groupNode);
+        }
+        groupNodes.push(groupNode);
       }
+      
+      // 如果没有任何分组，显示空状态
+      if (groupNodes.length === 0) {
+        return Promise.resolve([
+          new TodoNode(
+            '没有找到.todo文件',
+            vscode.TreeItemCollapsibleState.None,
+            'group'
+          )
+        ]);
+      }
+      
       return Promise.resolve(groupNodes);
     }
     
@@ -149,14 +181,20 @@ export class TodoExplorerProvider implements vscode.TreeDataProvider<TodoNode> {
       
       if (group) {
         for (const file of group.files) {
-          fileNodes.push(new TodoNode(
-            file.name,
-            vscode.TreeItemCollapsibleState.Collapsed,
-            'file',
-            undefined,
-            file,
-            group.name
-          ));
+          // 尝试从缓存获取
+          let fileNode = this.getNodeFromCache(file);
+          if (!fileNode) {
+            fileNode = new TodoNode(
+              file.name,
+              vscode.TreeItemCollapsibleState.Collapsed,
+              'file',
+              undefined,
+              file,
+              group.name
+            );
+            this.setCacheNode(file, fileNode);
+          }
+          fileNodes.push(fileNode);
         }
       }
       
@@ -168,14 +206,15 @@ export class TodoExplorerProvider implements vscode.TreeDataProvider<TodoNode> {
       const file = element.file;
       
       // 添加文件导航命令，即使文件为空也能点击打开
-      if (!element.file.command) {
-        element.file.command = {
+      if (!element.command) {
+        element.command = {
           command: 'xtodo.openTodoFile',
           title: '打开文件',
           arguments: [file.path]
         };
       }
       
+      // 如果文件中没有任务，显示一条提示信息
       if (file.items.length === 0) {
         const emptyNode = new TodoNode(
           '空文件，点击添加任务',
@@ -217,20 +256,48 @@ export class TodoExplorerProvider implements vscode.TreeDataProvider<TodoNode> {
    */
   private createTaskNodes(tasks: TodoItem[], file: TodoFile): TodoNode[] {
     return tasks.map(task => {
-      const hasChildren = task.children && task.children.length > 0;
-      const collapsibleState = hasChildren 
-        ? vscode.TreeItemCollapsibleState.Collapsed 
-        : vscode.TreeItemCollapsibleState.None;
-      
-      return new TodoNode(
-        task.content,
-        collapsibleState,
-        'task',
-        task,
-        file,
-        file.group
-      );
+      // 尝试从缓存获取
+      let taskNode = this.getNodeFromCache(task);
+      if (!taskNode) {
+        const hasChildren = task.children && task.children.length > 0;
+        const collapsibleState = hasChildren 
+          ? vscode.TreeItemCollapsibleState.Collapsed 
+          : vscode.TreeItemCollapsibleState.None;
+        
+        taskNode = new TodoNode(
+          task.content,
+          collapsibleState,
+          'task',
+          task,
+          file,
+          file.group
+        );
+        this.setCacheNode(task, taskNode);
+      }
+      return taskNode;
     });
+  }
+
+  /**
+   * 从缓存中获取节点
+   */
+  private getNodeFromCache(key: TodoFile | TodoItem): TodoNode | undefined {
+    return this.nodeCache.get(key);
+  }
+
+  /**
+   * 设置节点缓存
+   */
+  private setCacheNode(key: TodoFile | TodoItem, node: TodoNode): void {
+    this.nodeCache.set(key, node);
+  }
+
+  /**
+   * 清除缓存
+   */
+  public clearCache(): void {
+    this.nodeCache = new WeakMap();
+    this.groupNodeCache.clear();
   }
 }
 
@@ -243,18 +310,54 @@ export class TodoActiveProvider implements vscode.TreeDataProvider<TodoNode> {
 
   private todoGroups: TodoGroup[] = [];
   private activeTasksCache: Array<{group: string, file: TodoFile, task: TodoItem}> = [];
+  private nodeCache = new WeakMap<TodoItem, TodoNode>();
+  private groupNodeCache = new Map<string, TodoNode>();
+  private refreshTimer: NodeJS.Timeout | undefined;
+  private readonly REFRESH_DELAY = 50; // 防抖刷新时间
 
   constructor() {
     this.refresh();
   }
 
   /**
-   * 刷新树视图
+   * 刷新树视图 - 使用防抖动避免频繁刷新
    */
-  public async refresh(): Promise<void> {
-    this.todoGroups = await TodoParser.findAllTodoFiles();
-    this.activeTasksCache = TodoParser.findInProgressTasks(this.todoGroups);
-    this._onDidChangeTreeData.fire();
+  public refresh(): void {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+    }
+    
+    this.refreshTimer = setTimeout(async () => {
+      try {
+        this.todoGroups = await TodoParser.findAllTodoFiles();
+        this.activeTasksCache = TodoParser.findInProgressTasks(this.todoGroups);
+        this._onDidChangeTreeData.fire();
+      } catch (error) {
+        console.error("刷新进行中任务视图失败:", error);
+      }
+    }, this.REFRESH_DELAY);
+  }
+
+  /**
+   * 清除缓存
+   */
+  public clearCache(): void {
+    this.nodeCache = new WeakMap();
+    this.groupNodeCache.clear();
+  }
+
+  /**
+   * 从缓存中获取节点
+   */
+  private getNodeFromCache(key: TodoItem): TodoNode | undefined {
+    return this.nodeCache.get(key);
+  }
+
+  /**
+   * 设置节点缓存
+   */
+  private setCacheNode(key: TodoItem, node: TodoNode): void {
+    this.nodeCache.set(key, node);
   }
 
   /**
@@ -301,17 +404,17 @@ export class TodoActiveProvider implements vscode.TreeDataProvider<TodoNode> {
   public getChildren(element?: TodoNode): Thenable<TodoNode[]> {
     if (!element) {
       // 根节点，按分组组织进行中的任务
-      const groups = new Map<string, TodoNode[]>();
+      const groupMap = new Map<string, string[]>();
       
       // 先创建所有分组
       for (const {group} of this.activeTasksCache) {
-        if (!groups.has(group)) {
-          groups.set(group, []);
+        if (!groupMap.has(group)) {
+          groupMap.set(group, []);
         }
       }
       
       // 如果没有进行中的任务，显示提示信息
-      if (groups.size === 0) {
+      if (groupMap.size === 0) {
         const emptyNode = new TodoNode(
           '没有进行中的任务',
           vscode.TreeItemCollapsibleState.None,
@@ -322,14 +425,22 @@ export class TodoActiveProvider implements vscode.TreeDataProvider<TodoNode> {
       
       // 返回分组节点
       return Promise.resolve(
-        Array.from(groups.keys()).map(groupName => new TodoNode(
-          groupName,
-          vscode.TreeItemCollapsibleState.Expanded,
-          'group',
-          undefined,
-          undefined,
-          groupName
-        ))
+        Array.from(groupMap.keys()).map(groupName => {
+          // 尝试从缓存获取
+          let groupNode = this.groupNodeCache.get(groupName);
+          if (!groupNode) {
+            groupNode = new TodoNode(
+              groupName,
+              vscode.TreeItemCollapsibleState.Expanded,
+              'group',
+              undefined,
+              undefined,
+              groupName
+            );
+            this.groupNodeCache.set(groupName, groupNode);
+          }
+          return groupNode;
+        })
       );
     }
     
@@ -339,20 +450,26 @@ export class TodoActiveProvider implements vscode.TreeDataProvider<TodoNode> {
       
       for (const {group, file, task} of this.activeTasksCache) {
         if (group === element.group) {
-          // 检查任务是否有子任务
-          const hasChildren = task.children && task.children.length > 0;
-          const collapsibleState = hasChildren 
-            ? vscode.TreeItemCollapsibleState.Collapsed 
-            : vscode.TreeItemCollapsibleState.None;
-            
-          taskNodes.push(new TodoNode(
-            task.content,
-            collapsibleState,
-            'task',
-            task,
-            file,
-            group
-          ));
+          // 尝试从缓存获取
+          let taskNode = this.getNodeFromCache(task);
+          if (!taskNode) {
+            // 检查任务是否有子任务
+            const hasChildren = task.children && task.children.length > 0;
+            const collapsibleState = hasChildren 
+              ? vscode.TreeItemCollapsibleState.Collapsed 
+              : vscode.TreeItemCollapsibleState.None;
+              
+            taskNode = new TodoNode(
+              task.content,
+              collapsibleState,
+              'task',
+              task,
+              file,
+              group
+            );
+            this.setCacheNode(task, taskNode);
+          }
+          taskNodes.push(taskNode);
         }
       }
       
@@ -366,20 +483,26 @@ export class TodoActiveProvider implements vscode.TreeDataProvider<TodoNode> {
       
       for (const childTask of element.task.children) {
         if (childTask.status === TodoStatus.InProgress || this.hasInProgressChildren(childTask)) {
-          // 检查任务是否有子任务
-          const hasChildren = childTask.children && childTask.children.length > 0;
-          const collapsibleState = hasChildren 
-            ? vscode.TreeItemCollapsibleState.Collapsed 
-            : vscode.TreeItemCollapsibleState.None;
-            
-          childTasks.push(new TodoNode(
-            childTask.content,
-            collapsibleState,
-            'task',
-            childTask,
-            element.file,
-            element.group
-          ));
+          // 尝试从缓存获取
+          let childNode = this.getNodeFromCache(childTask);
+          if (!childNode) {
+            // 检查任务是否有子任务
+            const hasChildren = childTask.children && childTask.children.length > 0;
+            const collapsibleState = hasChildren 
+              ? vscode.TreeItemCollapsibleState.Collapsed 
+              : vscode.TreeItemCollapsibleState.None;
+              
+            childNode = new TodoNode(
+              childTask.content,
+              collapsibleState,
+              'task',
+              childTask,
+              element.file,
+              element.group
+            );
+            this.setCacheNode(childTask, childNode);
+          }
+          childTasks.push(childNode);
         }
       }
       
