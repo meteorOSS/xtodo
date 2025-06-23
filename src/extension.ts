@@ -10,6 +10,8 @@ import * as path from 'path';
 import { TodoStatus } from './models/todo';
 import { loadMessages, getMessage } from './i18n/localization';
 import { TodoParser } from './parser/todoParser';
+import * as os from 'os';
+import * as v8 from 'v8';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -245,8 +247,104 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 	context.subscriptions.push(onSaveDisposable);
+
+	// 注册显示内存使用情况命令
+	const showMemoryUsageCommand = vscode.commands.registerCommand('xtodo.showMemoryUsage', () => {
+		const memoryInfo = getMemoryUsage();
+		
+		// 创建内存使用情况的消息
+		let message = '**XTodo 内存使用情况**\n\n';
+		for (const [key, value] of Object.entries(memoryInfo)) {
+			message += `**${key}**: ${value}\n`;
+		}
+		
+		// 显示带有格式的消息
+		const markdownMessage = new vscode.MarkdownString(message);
+		markdownMessage.isTrusted = true;
+		
+		// 显示通知
+		vscode.window.showInformationMessage('XTodo 内存使用情况', {
+			detail: Object.entries(memoryInfo)
+				.map(([key, value]) => `${key}: ${value}`)
+				.join('\n'),
+			modal: true
+		});
+		
+		// 同时在输出通道中记录更详细的信息
+		const outputChannel = vscode.window.createOutputChannel('XTodo Memory Usage');
+		outputChannel.clear();
+		outputChannel.appendLine('========= XTodo 内存使用情况 =========');
+		outputChannel.appendLine(`时间: ${new Date().toLocaleString()}`);
+		
+		for (const [key, value] of Object.entries(memoryInfo)) {
+			outputChannel.appendLine(`${key}: ${value}`);
+		}
+		
+		outputChannel.appendLine('\n堆内存细节:');
+		const heapStats = v8.getHeapStatistics();
+		for (const [key, value] of Object.entries(heapStats)) {
+			outputChannel.appendLine(`${key}: ${typeof value === 'number' ? formatMemorySize(value) : value}`);
+		}
+		
+		outputChannel.appendLine('\n========= 执行环境信息 =========');
+		outputChannel.appendLine(`Node.js 版本: ${process.version}`);
+		outputChannel.appendLine(`平台: ${process.platform} (${process.arch})`);
+		outputChannel.appendLine(`VS Code 版本: ${vscode.version}`);
+		
+		outputChannel.show();
+	});
+	context.subscriptions.push(showMemoryUsageCommand);
 }
 
 export function deactivate() {
 	// 清理资源
+}
+
+/**
+ * 格式化内存单位
+ * @param bytes 字节数
+ * @returns 格式化后的带单位的字符串
+ */
+function formatMemorySize(bytes: number): string {
+	if (bytes < 1024) {
+		return bytes + ' B';
+	} else if (bytes < 1024 * 1024) {
+		return (bytes / 1024).toFixed(2) + ' KB';
+	} else if (bytes < 1024 * 1024 * 1024) {
+		return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+	} else {
+		return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+	}
+}
+
+/**
+ * 获取进程内存使用情况
+ * @returns 格式化后的内存使用信息对象
+ */
+function getMemoryUsage(): Record<string, string> {
+	const memoryUsage = process.memoryUsage();
+	
+	return {
+		'堆总量': formatMemorySize(memoryUsage.heapTotal),
+		'堆已使用': formatMemorySize(memoryUsage.heapUsed),
+		'RSS': formatMemorySize(memoryUsage.rss),  // 常驻集大小
+		'外部内存': formatMemorySize(memoryUsage.external),
+		'缓冲区内存': formatMemorySize(memoryUsage.arrayBuffers || 0),  // Node.js >= 13.0.0
+		'系统总内存': formatMemorySize(os.totalmem()),
+		'系统空闲内存': formatMemorySize(os.freemem()),
+		'进程启动时长': formatUptime(process.uptime())
+	};
+}
+
+/**
+ * 格式化运行时长
+ * @param seconds 秒数
+ * @returns 格式化后的时间字符串
+ */
+function formatUptime(seconds: number): string {
+	const hours = Math.floor(seconds / 3600);
+	const minutes = Math.floor((seconds % 3600) / 60);
+	const remainingSeconds = Math.floor(seconds % 60);
+	
+	return `${hours}小时 ${minutes}分钟 ${remainingSeconds}秒`;
 }

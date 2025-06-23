@@ -134,6 +134,10 @@
       {
         "command": "xtodo.convertToTask",
         "title": "Convert to Task or Toggle Task Status"
+      },
+      {
+        "command": "xtodo.showMemoryUsage",
+        "title": "XTodo: 显示内存占用情况"
       }
     ],
     "viewsContainers": {
