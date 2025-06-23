@@ -78,7 +78,7 @@ export class TodoParser {
         const indentLevel = line.length - trimmedLine.length;
         
         // 检查任务状态
-        let status: TodoStatus = TodoStatus.NotStarted;
+        let status: TodoStatus | undefined = undefined;
         let content = trimmedLine;
         
         if (trimmedLine.startsWith(TodoStatus.NotStarted)) {
@@ -90,6 +90,9 @@ export class TodoParser {
         } else if (trimmedLine.startsWith(TodoStatus.Completed)) {
           status = TodoStatus.Completed;
           content = trimmedLine.substring(TodoStatus.Completed.length).trim();
+        } else {
+          // 跳过没有任务状态标识的行
+          return;
         }
         
         // 创建任务项 - 使用对象池减少内存分配
