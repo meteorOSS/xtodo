@@ -10,7 +10,9 @@
 
 一款轻量级 VS Code 扩展，通过简单的文本文件管理任务
 
-![desc](https://github.com/meteorOSS/xtodo/raw/master/resources/desc.png)
+> 目前，我正在使用该扩展作为任务管理，代替滴答清单等软件。原因是打开vscode的时间是一天中最长的
+
+![desc](https://raw.githubusercontent.com/meteorOSS/xtodo/refs/heads/master/resources/desc.png)
 
 ## 功能 Features
 
