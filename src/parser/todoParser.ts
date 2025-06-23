@@ -219,7 +219,12 @@ export class TodoParser {
     
     for (const group of groups) {
       for (const file of group.files) {
-        this.collectInProgressTasks(file.items, file, group.name, inProgressTasks);
+        // 只收集顶层的进行中任务，子任务在视图展示时处理
+        for (const task of file.items) {
+          if (task.status === TodoStatus.InProgress || this.hasInProgressChildren(task)) {
+            inProgressTasks.push({ group: group.name, file, task });
+          }
+        }
       }
     }
     
@@ -227,25 +232,18 @@ export class TodoParser {
   }
   
   /**
-   * 递归收集任务中的进行中任务
-   * @param tasks 任务列表
-   * @param file 所属文件
-   * @param groupName 所属分组
-   * @param result 结果集合
+   * 判断任务是否有进行中的子任务
+   * @param task 任务
+   * @returns 是否有进行中子任务
    */
-  private static collectInProgressTasks(
-    tasks: TodoItem[], 
-    file: TodoFile, 
-    groupName: string, 
-    result: Array<{group: string, file: TodoFile, task: TodoItem}>
-  ): void {
-    for (const task of tasks) {
-      if (task.status === TodoStatus.InProgress) {
-        result.push({ group: groupName, file, task });
-      }
-      if (task.children.length > 0) {
-        this.collectInProgressTasks(task.children, file, groupName, result);
+  private static hasInProgressChildren(task: TodoItem): boolean {
+    if (task.children && task.children.length > 0) {
+      for (const child of task.children) {
+        if (child.status === TodoStatus.InProgress || this.hasInProgressChildren(child)) {
+          return true;
+        }
       }
     }
+    return false;
   }
 } 

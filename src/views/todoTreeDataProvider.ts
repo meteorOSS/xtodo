@@ -339,9 +339,15 @@ export class TodoActiveProvider implements vscode.TreeDataProvider<TodoNode> {
       
       for (const {group, file, task} of this.activeTasksCache) {
         if (group === element.group) {
+          // 检查任务是否有子任务
+          const hasChildren = task.children && task.children.length > 0;
+          const collapsibleState = hasChildren 
+            ? vscode.TreeItemCollapsibleState.Collapsed 
+            : vscode.TreeItemCollapsibleState.None;
+            
           taskNodes.push(new TodoNode(
             task.content,
-            vscode.TreeItemCollapsibleState.None,
+            collapsibleState,
             'task',
             task,
             file,
@@ -353,6 +359,44 @@ export class TodoActiveProvider implements vscode.TreeDataProvider<TodoNode> {
       return Promise.resolve(taskNodes);
     }
     
+    // 检查是否是任务节点，并且有子任务
+    if (element.type === 'task' && element.task && element.task.children.length > 0) {
+      // 寻找该任务的所有进行中子任务
+      const childTasks: TodoNode[] = [];
+      
+      for (const childTask of element.task.children) {
+        if (childTask.status === TodoStatus.InProgress || this.hasInProgressChildren(childTask)) {
+          // 检查任务是否有子任务
+          const hasChildren = childTask.children && childTask.children.length > 0;
+          const collapsibleState = hasChildren 
+            ? vscode.TreeItemCollapsibleState.Collapsed 
+            : vscode.TreeItemCollapsibleState.None;
+            
+          childTasks.push(new TodoNode(
+            childTask.content,
+            collapsibleState,
+            'task',
+            childTask,
+            element.file,
+            element.group
+          ));
+        }
+      }
+      
+      return Promise.resolve(childTasks);
+    }
+    
     return Promise.resolve([]);
+  }
+
+  private hasInProgressChildren(task: TodoItem): boolean {
+    if (task.children && task.children.length > 0) {
+      for (const childTask of task.children) {
+        if (childTask.status === TodoStatus.InProgress || this.hasInProgressChildren(childTask)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 } 
